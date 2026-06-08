@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard CHP — SRJ2 (Meli Style)</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --meli-yellow: #FFE600;
+    --meli-blue: #2D3277;
+    --meli-action: #3483FA;
+    --meli-bg: #EBEBEB;
+    --surface: #FFFFFF;
+    --text: #333333;
+    --text-muted: #666666;
+    --text-hint: #999999;
+    --border: #DDDDDD;
+    
+    --early-fill: #E6F6EF;
+    --early-text: #00A650;
+    --early-bar: #00A650;
+    
+    --ontime-fill: #FFF9E6;
+    --ontime-text: #FFAD00;
+    --ontime-bar: #FFAD00;
+    
+    --delay-fill: #FEEBEB;
+    --delay-text: #F23D4F;
+    --delay-bar: #F23D4F;
+    
+    --radius: 6px;
+    --shadow: 0 1px 2px 0 rgba(0,0,0,0.12);
+    font-size: 14px;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--meli-bg); color: var(--text); font-family: 'Inter', -apple-system, sans-serif; min-height: 100vh; }
+
+  /* Meli Header */
+  .meli-header { background: var(--meli-yellow); padding: 12px 24px; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 1px 0 0 rgba(0,0,0,0.1); position: sticky; top: 0; z-index: 100; }
+  .meli-header h1 { font-size: 18px; color: var(--meli-blue); font-weight: 600; display: flex; align-items: center; gap: 10px; }
+  .meli-header .logo-box { background: var(--meli-blue); color: white; padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: 600; }
+
+  /* Upload zone */
+  #upload-zone { min-height: calc(100vh - 60px); display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 2rem; }
+  .upload-card { background: var(--surface); border-radius: var(--radius); padding: 2.5rem 2rem; max-width: 500px; width: 100%; text-align: center; box-shadow: var(--shadow); }
+  .upload-card h2 { font-size: 20px; font-weight: 600; margin-bottom: 8px; color: var(--text); }
+  .upload-card p { font-size: 14px; color: var(--text-muted); margin-bottom: 2rem; }
+  
+  .drop-area { border: 2px dashed var(--border); border-radius: var(--radius); padding: 2.5rem 1rem; cursor: pointer; transition: all .2s; position: relative; background: #f9f9f9; }
+  .drop-area:hover { border-color: var(--meli-action); background: #f0f5ff; }
+  .drop-area input[type=file] { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+  .drop-icon { font-size: 40px; margin-bottom: 1rem; }
+  
+  .btn-process { margin-top: 1.5rem; width: 100%; padding: 12px; background: var(--meli-action); color: white; border: none; border-radius: var(--radius); font-size: 16px; font-weight: 600; cursor: pointer; transition: background .2s; }
+  .btn-process:hover { background: #2968c8; }
+  .btn-process:disabled { background: #cccccc; cursor: not-allowed; }
+
+  /* Dashboard Layout */
+  #dashboard { display: none; padding: 24px; max-width: 1400px; margin: 0 auto; }
+  .dash-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+  .reload-btn { font-size: 13px; color: var(--meli-action); background: white; border: 1px solid var(--meli-action); border-radius: var(--radius); padding: 6px 16px; cursor: pointer; font-weight: 500; }
+  .reload-btn:hover { background: #f0f5ff; }
+
+  /* Scorecards */
+  .scorecard-row { display: grid; grid-template-columns: repeat(6, 1fr); gap: 10px; margin-bottom: 24px; }
+  @media (max-width: 1024px) { .scorecard-row { grid-template-columns: repeat(3, 1fr); } }
+  @media (max-width: 600px) { .scorecard-row { grid-template-columns: repeat(2, 1fr); } }
+  
+  .scorecard { background: var(--surface); border-radius: var(--radius); padding: 16px; box-shadow: var(--shadow); border: 1px solid transparent; }
+  .scorecard .label { font-size: 11px; color: var(--text-muted); font-weight: 600; text-transform: uppercase; margin-bottom: 8px; letter-spacing: 0.02em; }
+  .scorecard .value { font-size: 24px; font-weight: 600; color: var(--text); line-height: 1.2; }
+  .scorecard .sub { font-size: 11px; color: var(--text-hint); margin-top: 4px; }
+  .scorecard.alert-card { border-color: var(--delay-bar); background: var(--delay-fill); }
+  .scorecard.alert-card .value { color: var(--delay-text); }
+
+  /* Filters */
+  .filter-bar { background: var(--surface); padding: 12px 20px; border-radius: var(--radius); box-shadow: var(--shadow); display: flex; gap: 20px; flex-wrap: wrap; align-items: center; margin-bottom: 24px; }
+  .filter-group { display: flex; align-items: center; gap: 8px; }
+  .filter-group label { font-size: 13px; font-weight: 500; color: var(--text-muted); }
+  .filter-bar select { font-size: 13px; padding: 6px 10px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); color: var(--text); cursor: pointer; }
+
+  /* Sections */
+  .section-title { font-size: 13px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; margin-bottom: 12px; letter-spacing: 0.05em; }
+
+  /* Origem Grid */
+  .origem-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; margin-bottom: 32px; }
+  .origem-card { background: var(--surface); border-radius: var(--radius); padding: 16px; box-shadow: var(--shadow); }
+  .origem-card.has-alert { border: 1px solid var(--delay-bar); }
+  .origem-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+  .origem-name { font-size: 14px; font-weight: 600; color: var(--meli-blue); }
+  .origem-total { font-size: 12px; color: var(--text-muted); }
+  
+  .origem-bar-row { display: flex; height: 6px; border-radius: 3px; overflow: hidden; margin-bottom: 10px; background: #eee; }
+  .bar-early { background: var(--early-bar); }
+  .bar-ontime { background: var(--ontime-bar); }
+  .bar-delay { background: var(--delay-bar); }
+  
+  .origem-legend { display: flex; flex-direction: column; gap: 4px; font-size: 11px; }
+  .leg { display: flex; align-items: center; gap: 6px; }
+  .leg-dot { width: 8px; height: 8px; border-radius: 50%; }
+  .alert-badge { margin-top: 6px; font-size: 10px; font-weight: 600; color: var(--delay-text); background: var(--delay-fill); padding: 2px 6px; border-radius: 4px; display: inline-block; }
+
+  /* Table */
+  .table-card { background: var(--surface); border-radius: var(--radius); box-shadow: var(--shadow); overflow: hidden; margin-bottom: 40px; }
+  table { width: 100%; border-collapse: collapse; }
+  th { background: #f7f7f7; padding: 12px 16px; font-size: 11px; font-weight: 600; color: var(--text-muted); text-align: left; text-transform: uppercase; border-bottom: 1px solid var(--border); }
+  td { padding: 10px 16px; font-size: 13px; border-bottom: 1px solid #f0f0f0; }
+  tr.row-alert td { background-color: var(--delay-fill); }
+  
+  .pill { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; }
+  .pill-early { background: var(--early-fill); color: var(--early-text); }
+  .pill-ontime { background: var(--ontime-fill); color: var(--ontime-text); }
+  .pill-delay { background: var(--delay-fill); color: var(--delay-text); }
+
+  .mini-bar-container { display: flex; align-items: center; gap: 8px; }
+  .mini-bar-bg { width: 60px; height: 6px; background: #eee; border-radius: 3px; overflow: hidden; flex-shrink: 0; }
+  .mini-bar-fill { height: 100%; border-radius: 3px; }
+  .pct-val { font-size: 12px; min-width: 80px; }
+  .pct-alert { color: var(--delay-text); font-weight: 600; }
+
+  /* Chart */
+  .chart-card { background: var(--surface); border-radius: var(--radius); padding: 20px; box-shadow: var(--shadow); margin-bottom: 32px; }
+</style>
+</head>
+<body>
+
+<header class="meli-header">
+  <h1><span class="logo-box">SRJ2</span> CHP Monitor</h1>
+  <div id="dash-date" style="font-size:14px; color: var(--meli-blue); font-weight:500"></div>
+</header>
+
+<div id="upload-zone">
+  <div class="upload-card">
+    <div class="drop-icon">📦</div>
+    <h2>Bem-vindo ao CHP Monitor</h2>
+    <p>Selecione os arquivos CSV (AM/PM) para consolidar o relatório de performance.</p>
+    
+    <div class="drop-area" id="drop-area">
+      <input type="file" id="file-input" multiple accept=".csv">
+      <p><strong>Clique para buscar</strong> ou arraste os arquivos</p>
+      <p style="font-size:12px; margin-top:8px">Consolidamos múltiplos CSVs automaticamente</p>
+    </div>
+    
+    <div id="file-list" style="margin-top:20px; text-align:left"></div>
+    
+    <button class="btn-process" id="btn-process" disabled onclick="processFiles()">Gerar Relatório</button>
+  </div>
+</div>
+
+<div id="dashboard">
+  <div class="dash-top">
+    <h2 style="font-weight:600; font-size:18px">CHP Monitor — SRJ2</h2>
+    <button class="reload-btn" onclick="resetDash()">↩ Carregar nova base</button>
+  </div>
+
+  <div class="scorecard-row" id="scorecards"></div>
+
+  <div class="filter-bar">
+    <div class="filter-group">
+      <label>Origem</label>
+      <select id="filter-origem" onchange="render()"><option value="">Todas</option></select>
+    </div>
+    <div class="filter-group">
+      <label>% ON TIME mín. alerta</label>
+      <select id="filter-threshold" onchange="render()">
+        <option value="5">5%</option>
+        <option value="3">3%</option>
+        <option value="10">10%</option>
+        <option value="1">1%</option>
+      </select>
+    </div>
+    <div class="filter-group">
+      <label>Mostrar</label>
+      <select id="filter-show" onchange="render()">
+        <option value="all">Todas as HUs</option>
+        <option value="alert">Apenas com alerta</option>
+      </select>
+    </div>
+  </div>
+
+  <p class="section-title">Visão por origem</p>
+  <div class="origem-grid" id="origem-grid"></div>
+
+  <p class="section-title">Detalhe por HU</p>
+  <div class="chart-card">
+    <canvas id="chart-origem" style="max-height: 280px;"></canvas>
+  </div>
+
+  <div class="table-card">
+    <table>
+      <thead>
+        <tr>
+          <th>HU</th>
+          <th>Origem</th>
+          <th style="text-align:right">Total</th>
+          <th>Early</th>
+          <th>On Time</th>
+          <th>Delay</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody id="hu-tbody"></tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+let loadedFiles = [];
+let allData = [];
+let chartInstance = null;
+
+const dropArea = document.getElementById('drop-area');
+const fileInput = document.getElementById('file-input');
+const fileList = document.getElementById('file-list');
+const btnProcess = document.getElementById('btn-process');
+
+dropArea.addEventListener('dragover', e => { e.preventDefault(); dropArea.style.borderColor = '#3483FA'; });
+dropArea.addEventListener('dragleave', () => dropArea.style.borderColor = '#DDDDDD');
+dropArea.addEventListener('drop', e => {
+  e.preventDefault();
+  dropArea.style.borderColor = '#DDDDDD';
+  handleFiles([...e.dataTransfer.files]);
+});
+fileInput.addEventListener('change', () => handleFiles([...fileInput.files]));
+
+function handleFiles(files) {
+  files.forEach(f => {
+    if (!f.name.endsWith('.csv')) return;
+    if (loadedFiles.find(x => x.name === f.name)) return;
+    loadedFiles.push(f);
+  });
+  renderFileList();
+}
+
+function renderFileList() {
+  fileList.innerHTML = loadedFiles.map((f, i) => `
+    <div style="display:flex; align-items:center; justify-content:space-between; background:#f5f5f5; padding:8px 12px; border-radius:4px; margin-bottom:6px; font-size:13px">
+      <span>📄 ${f.name}</span>
+      <span style="cursor:pointer; color:#F23D4F; font-weight:bold" onclick="removeFile(${i})">✕</span>
+    </div>`).join('');
+  btnProcess.disabled = loadedFiles.length === 0;
+}
+
+function removeFile(i) {
+  loadedFiles.splice(i, 1);
+  renderFileList();
+}
+
+function processFiles() {
+  if (!loadedFiles.length) return;
+  btnProcess.disabled = true;
+  btnProcess.textContent = 'Processando...';
+  allData = [];
+  let parsed = 0;
+  loadedFiles.forEach(f => {
+    Papa.parse(f, {
+      header: true,
+      skipEmptyLines: true,
+      complete: res => {
+        allData = allData.concat(res.data);
+        parsed++;
+        if (parsed === loadedFiles.length) finalize();
+      }
+    });
+  });
+}
+
+function finalize() {
+  document.getElementById('upload-zone').style.display = 'none';
+  document.getElementById('dashboard').style.display = 'block';
+  document.getElementById('dash-date').textContent = '— ' + new Date().toLocaleDateString('pt-BR', {day:'2-digit',month:'2-digit',year:'numeric'});
+
+  const origens = [...new Set(
+    allData.filter(r => r['CICLO FINAL'] === 'CHP').map(r => r['Facility_Origem']).filter(Boolean)
+  )].sort();
+  const sel = document.getElementById('filter-origem');
+  sel.innerHTML = '<option value="">Todas</option>' + origens.map(o => `<option value="${o}">${o}</option>`).join('');
+  render();
+}
+
+function render() {
+  const threshold = parseFloat(document.getElementById('filter-threshold').value);
+  const origemFilter = document.getElementById('filter-origem').value;
+  const showFilter = document.getElementById('filter-show').value;
+
+  let chp = allData.filter(r => r['CICLO FINAL'] === 'CHP');
+  if (origemFilter) chp = chp.filter(r => r['Facility_Origem'] === origemFilter);
+
+  const huMap = {};
+  chp.forEach(r => {
+    const hu = String(r['HU'] || '').trim();
+    const orig = String(r['Facility_Origem'] || '').trim();
+    const dit = String(r['INFO DIT'] || '').trim().toUpperCase();
+    if (!hu) return;
+    if (!huMap[hu]) huMap[hu] = { hu, orig, early: 0, ontime: 0, delay: 0, total: 0 };
+    if (dit === 'EARLY') huMap[hu].early++;
+    else if (dit === 'ON TIME') huMap[hu].ontime++;
+    else if (dit === 'DELAY') huMap[hu].delay++;
+    huMap[hu].total++;
+  });
+
+  let rows = Object.values(huMap).map(h => ({
+    ...h,
+    pctOntime: h.total > 0 ? (h.ontime / h.total * 100) : 0,
+    pctDelay: h.total > 0 ? (h.delay / h.total * 100) : 0,
+    pctEarly: h.total > 0 ? (h.early / h.total * 100) : 0,
+    alert: h.total > 0 && (h.ontime / h.total * 100) > threshold
+  })).sort((a, b) => b.pctOntime - a.pctOntime);
+
+  if (showFilter === 'alert') rows = rows.filter(r => r.alert);
+
+  renderScorecards(rows, threshold);
+  renderOrigem(chp, threshold);
+  renderChart(chp);
+  renderTable(rows);
+}
+
+function renderScorecards(rows, threshold) {
+  const alertCount = rows.filter(r => r.alert).length;
+  const totalHUs = rows.length;
+  const globalOntime = rows.reduce((s, r) => s + r.ontime, 0);
+  const globalTotal = rows.reduce((s, r) => s + r.total, 0);
+  const globalEarly = rows.reduce((s, r) => s + r.early, 0);
+  const globalDelay = rows.reduce((s, r) => s + r.delay, 0);
+  const pctOntime = globalTotal > 0 ? (globalOntime / globalTotal * 100) : 0;
+
+  document.getElementById('scorecards').innerHTML = `
+    <div class="scorecard">
+      <div class="label">TOTAL PACOTES CHP</div>
+      <div class="value">${globalTotal.toLocaleString('pt-BR')}</div>
+      <div class="sub">Ciclo CHP filtrado</div>
+    </div>
+    <div class="scorecard">
+      <div class="label">HUS ANALISADAS</div>
+      <div class="value">${totalHUs}</div>
+      <div class="sub">HUs únicas no período</div>
+    </div>
+    <div class="scorecard ${alertCount > 0 ? 'alert-card' : ''}">
+      <div class="label">HUS COM ALERTA</div>
+      <div class="value">${alertCount}</div>
+      <div class="sub">ON TIME > ${threshold}%</div>
+    </div>
+    <div class="scorecard">
+      <div class="label">ON TIME GLOBAL</div>
+      <div class="value">${pctOntime.toFixed(1)}%</div>
+      <div class="sub">${globalOntime.toLocaleString('pt-BR')} de ${globalTotal.toLocaleString('pt-BR')} pacotes</div>
+    </div>
+    <div class="scorecard">
+      <div class="label">EARLY GLOBAL</div>
+      <div class="value" style="color:var(--early-bar)">${globalTotal > 0 ? (globalEarly/globalTotal*100).toFixed(1) : 0}%</div>
+      <div class="sub">${globalEarly.toLocaleString('pt-BR')} de ${globalTotal.toLocaleString('pt-BR')} pacotes</div>
+    </div>
+    <div class="scorecard">
+      <div class="label">DELAY GLOBAL</div>
+      <div class="value" style="color:var(--delay-bar)">${globalTotal > 0 ? (globalDelay/globalTotal*100).toFixed(1) : 0}%</div>
+      <div class="sub">${globalDelay.toLocaleString('pt-BR')} de ${globalTotal.toLocaleString('pt-BR')} pacotes</div>
+    </div>`;
+}
+
+function renderOrigem(chp, threshold) {
+  const origemMap = {};
+  chp.forEach(r => {
+    const orig = String(r['Facility_Origem'] || '').trim();
+    const dit = String(r['INFO DIT'] || '').trim().toUpperCase();
+    if (!orig) return;
+    if (!origemMap[orig]) origemMap[orig] = { orig, early: 0, ontime: 0, delay: 0, total: 0, huAlerts: 0 };
+    if (dit === 'EARLY') origemMap[orig].early++;
+    else if (dit === 'ON TIME') origemMap[orig].ontime++;
+    else if (dit === 'DELAY') origemMap[orig].delay++;
+    origemMap[orig].total++;
+  });
+
+  const huCheck = {};
+  chp.forEach(r => {
+    const hu = r['HU']; const orig = r['Facility_Origem'];
+    if(!huCheck[hu]) huCheck[hu] = { orig, ontime: 0, total: 0 };
+    if(r['INFO DIT'] === 'ON TIME') huCheck[hu].ontime++;
+    huCheck[hu].total++;
+  });
+  Object.values(huCheck).forEach(h => {
+    if((h.ontime/h.total*100) > threshold && origemMap[h.orig]) origemMap[h.orig].huAlerts++;
+  });
+
+  const origens = Object.values(origemMap).sort((a, b) => b.total - a.total);
+  document.getElementById('origem-grid').innerHTML = origens.map(o => {
+    const pE = (o.early/o.total*100).toFixed(1);
+    const pO = (o.ontime/o.total*100).toFixed(1);
+    const pD = (o.delay/o.total*100).toFixed(1);
+    return `
+    <div class="origem-card ${o.huAlerts > 0 ? 'has-alert' : ''}">
+      <div class="origem-header">
+        <span class="origem-name">${o.orig}</span>
+        <span class="origem-total">${o.total.toLocaleString('pt-BR')} pcts</span>
+      </div>
+      <div class="origem-bar-row">
+        <div class="bar-early" style="width:${pE}%"></div>
+        <div class="bar-ontime" style="width:${pO}%"></div>
+        <div class="bar-delay" style="width:${pD}%"></div>
+      </div>
+      <div class="origem-legend">
+        <span class="leg"><span class="leg-dot" style="background:var(--early-bar)"></span>${o.early.toLocaleString('pt-BR')} (${pE}%) Early</span>
+        <span class="leg"><span class="leg-dot" style="background:var(--ontime-bar)"></span>${o.ontime.toLocaleString('pt-BR')} (${pO}%) On Time</span>
+        <span class="leg"><span class="leg-dot" style="background:var(--delay-bar)"></span>${o.delay.toLocaleString('pt-BR')} (${pD}%) Delay</span>
+        ${o.huAlerts > 0 ? `<div class="alert-badge">⚠️ ${o.huAlerts} HU com alerta</div>` : ''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function renderChart(chp) {
+  const map = {};
+  chp.forEach(r => {
+    const o = r['Facility_Origem']; const d = r['INFO DIT'];
+    if(!map[o]) map[o] = { early: 0, ontime: 0, delay: 0 };
+    if(d === 'EARLY') map[o].early++; else if(d === 'ON TIME') map[o].ontime++; else if(d === 'DELAY') map[o].delay++;
+  });
+  const labels = Object.keys(map).sort();
+  const datasets = [
+    { label: 'Early %', data: labels.map(l => (map[l].early/(map[l].early+map[l].ontime+map[l].delay)*100).toFixed(1)), backgroundColor: '#00A650' },
+    { label: 'On Time %', data: labels.map(l => (map[l].ontime/(map[l].early+map[l].ontime+map[l].delay)*100).toFixed(1)), backgroundColor: '#FFAD00' },
+    { label: 'Delay %', data: labels.map(l => (map[l].delay/(map[l].early+map[l].ontime+map[l].delay)*100).toFixed(1)), backgroundColor: '#F23D4F' }
+  ];
+
+  if (chartInstance) chartInstance.destroy();
+  chartInstance = new Chart(document.getElementById('chart-origem'), {
+    type: 'bar',
+    data: { labels, datasets },
+    options: { responsive: true, scales: { x: { stacked: true }, y: { stacked: true, max: 100 } } }
+  });
+}
+
+function renderTable(rows) {
+  document.getElementById('hu-tbody').innerHTML = rows.map(r => `
+    <tr class="${r.alert ? 'row-alert' : ''}">
+      <td style="font-family:monospace; font-weight:500">${r.hu}</td>
+      <td>${r.orig}</td>
+      <td style="text-align:right; font-weight:600">${r.total.toLocaleString('pt-BR')}</td>
+      <td><div class="mini-bar-container"><div class="mini-bar-bg"><div class="mini-bar-fill bar-early" style="width:${r.pctEarly}%"></div></div><span class="pct-val">${r.early} <span style="opacity:.6">(${r.pctEarly.toFixed(1)}%)</span></span></div></td>
+      <td><div class="mini-bar-container"><div class="mini-bar-bg"><div class="mini-bar-fill bar-ontime" style="width:${r.pctOntime}%"></div></div><span class="pct-val ${r.alert?'pct-alert':''}">${r.ontime} <span style="opacity:.6">(${r.pctOntime.toFixed(1)}%)</span></span></div></td>
+      <td><div class="mini-bar-container"><div class="mini-bar-bg"><div class="mini-bar-fill bar-delay" style="width:${r.pctDelay}%"></div></div><span class="pct-val">${r.delay} <span style="opacity:.6">(${r.pctDelay.toFixed(1)}%)</span></span></div></td>
+      <td><span class="pill ${r.alert?'pill-delay':r.delay>0?'pill-ontime':'pill-early'}">${r.alert?'ALERTA':r.delay>0?'DELAY':'OK'}</span></td>
+    </tr>`).join('');
+}
+
+function resetDash() {
+  location.reload();
+}
+</script>
+</body>
+</html>
