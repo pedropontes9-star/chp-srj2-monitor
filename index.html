@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Monitor — Ciclos</title>
+<title>SRJ2 Monitor — AM/PM/CHP</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
@@ -120,7 +120,7 @@
 <div id="upload-zone">
   <div class="upload-card" style="max-width:640px">
     <div class="drop-icon">📦</div>
-    <h2>Bem-vindo ao Monitor de Ciclos</h2>
+    <h2>Bem-vindo ao SRJ2 Monitor</h2>
     <p>Carregue as bases AM e PM para gerar o relatório consolidado.</p>
 
     <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:20px">
@@ -151,7 +151,7 @@
 
 <div id="dashboard">
   <div class="dash-top">
-    <h2 style="font-weight:600; font-size:18px">Monitor - Ciclos</h2>
+    <h2 style="font-weight:600; font-size:18px">SRJ2 Monitor</h2>
     <button class="reload-btn" onclick="resetDash()">↩ Carregar nova base</button>
   </div>
 
@@ -302,8 +302,15 @@ function finalize() {
   document.getElementById('dashboard').style.display = 'block';
   document.getElementById('dash-date').textContent = '— ' + new Date().toLocaleDateString('pt-BR', {day:'2-digit',month:'2-digit',year:'numeric'});
 
-  // Popula filtro de ciclos
-  const ciclos = [...new Set(allData.map(r => r._cicloLabel).filter(Boolean))].sort();
+  // Popula filtro de ciclos — AM, PM, CHP primeiro, depois os demais em ordem alfabética
+  const priority = ['AM', 'PM', 'CHP'];
+  const ciclos = [...new Set(allData.map(r => r._cicloLabel).filter(Boolean))].sort((a, b) => {
+    const ia = priority.indexOf(a), ib = priority.indexOf(b);
+    if (ia !== -1 && ib !== -1) return ia - ib;
+    if (ia !== -1) return -1;
+    if (ib !== -1) return 1;
+    return a.localeCompare(b);
+  });
   activeCiclos = new Set(ciclos);
   const chips = document.getElementById('ciclo-checkboxes');
   chips.innerHTML = ciclos.map(c => {
