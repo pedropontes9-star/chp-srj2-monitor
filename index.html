@@ -80,7 +80,7 @@
   .toggle-btn { padding: 4px 12px; border-radius: 4px; font-size: 12px; font-weight: 500; border: none; cursor: pointer; background: transparent; color: var(--text-muted); transition: all .15s; }
   .toggle-btn.active { background: white; color: var(--meli-blue); box-shadow: 0 1px 2px rgba(0,0,0,0.1); }
 
-  .origem-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; margin-bottom: 32px; }
+  .origem-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(380px, 1fr)); gap: 16px; margin-bottom: 32px; }
   .origem-card { background: var(--surface); border-radius: var(--radius); padding: 16px; box-shadow: var(--shadow); border: 1px solid transparent; }
   .origem-card.has-alert { border-color: var(--delay-bar); }
   .origem-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
@@ -171,6 +171,7 @@
   </div>
 
   <div class="scorecard-row" id="scorecards"></div>
+  <div class="scorecard-row" id="scorecards-unidad" style="grid-template-columns: repeat(2,1fr); max-width:400px; margin-bottom:24px"></div>
 
   <!-- Filtros -->
   <div class="filter-bar">
@@ -187,6 +188,10 @@
     </div>
     <!-- Linha 2: Selects -->
     <div class="filter-row">
+      <div class="filter-group">
+        <label>Tipo Unidad</label>
+        <select id="filter-unidad" onchange="render()"><option value="">Todos</option></select>
+      </div>
       <div class="filter-group">
         <label>Tipo Nodo</label>
         <select id="filter-nodo" onchange="render()"><option value="">Todos</option></select>
@@ -328,6 +333,9 @@ function finalize() {
     return `<span class="ciclo-chip ${cls} active" onclick="toggleCiclo('${c}',this)">${c}</span>`;
   }).join('');
 
+  const unidades = [...new Set(allData.map(r=>r['Tipo_Unidad']).filter(Boolean))].sort();
+  document.getElementById('filter-unidad').innerHTML = '<option value="">Todos</option>' + unidades.map(u=>`<option>${u}</option>`).join('');
+
   const nodos = [...new Set(allData.map(r=>r['Tipo_Nodo']).filter(Boolean))].sort();
   document.getElementById('filter-nodo').innerHTML = '<option value="">Todos</option>' + nodos.map(n=>`<option>${n}</option>`).join('');
 
@@ -377,6 +385,8 @@ function getFilteredData() {
   if (orig) data = data.filter(r => r['Facility_Origem'] === orig);
   if (nodo) data = data.filter(r => r['Tipo_Nodo'] === nodo);
   if (end)  data = data.filter(r => r['Tipo_Endereco'] === end);
+  const unidad = document.getElementById('filter-unidad').value;
+  if (unidad) data = data.filter(r => r['Tipo_Unidad'] === unidad);
   return data;
 }
 
@@ -395,7 +405,11 @@ function render() {
     const end  = String(r['Tipo_Endereco']||'').trim();
     const dit  = String(r['INFO DIT']||'').trim().toUpperCase();
     const ciclo = r._cicloLabel;
-    if (!huMap[hu]) huMap[hu] = {hu, orig, nodo, end, ciclo, early:0, ontime:0, delay:0, total:0};
+    const unidad = String(r['Tipo_Unidad']||'').trim();
+    const isGMr = unidad.toLowerCase().includes('general');
+    const isBulkyr = unidad.toLowerCase().includes('bulky');
+    if (!huMap[hu]) huMap[hu] = {hu, orig, nodo, end, ciclo, early:0, ontime:0, delay:0, total:0, gm:0, bulky:0};
+    if (isGMr) huMap[hu].gm++; if (isBulkyr) huMap[hu].bulky++;
     if (dit==='EARLY') huMap[hu].early++;
     else if (dit==='ON TIME') huMap[hu].ontime++;
     else if (dit==='DELAY') huMap[hu].delay++;
@@ -413,6 +427,7 @@ function render() {
   if (showFilter==='alert') rows = rows.filter(r=>r.alert);
 
   renderScorecards(rows, threshold);
+  renderScorecardsUnidad(data);
   renderCards(data, threshold, cardMode);
   renderChart(data, chartDim);
   renderTable(rows);
@@ -432,6 +447,23 @@ function renderScorecards(rows, threshold) {
     <div class="scorecard"><div class="label">ON TIME Global</div><div class="value">${gt>0?(go/gt*100).toFixed(1):0}%</div><div class="sub">${go.toLocaleString('pt-BR')} de ${gt.toLocaleString('pt-BR')} pcts</div></div>
     <div class="scorecard"><div class="label">Early Global</div><div class="value" style="color:var(--early-bar)">${gt>0?(ge/gt*100).toFixed(1):0}%</div><div class="sub">${ge.toLocaleString('pt-BR')} de ${gt.toLocaleString('pt-BR')} pcts</div></div>
     <div class="scorecard"><div class="label">Delay Global</div><div class="value" style="color:var(--delay-bar)">${gt>0?(gd/gt*100).toFixed(1):0}%</div><div class="sub">${gd.toLocaleString('pt-BR')} de ${gt.toLocaleString('pt-BR')} pcts</div></div>`;
+}
+
+function renderScorecardsUnidad(data) {
+  const gm = data.filter(r => String(r['Tipo_Unidad']||'').toLowerCase().includes('general')).length;
+  const bulky = data.filter(r => String(r['Tipo_Unidad']||'').toLowerCase().includes('bulky')).length;
+  const total = data.length || 1;
+  document.getElementById('scorecards-unidad').innerHTML = `
+    <div class="scorecard">
+      <div class="label">GM (General Merchant)</div>
+      <div class="value">${(gm/total*100).toFixed(1)}%</div>
+      <div class="sub">${gm.toLocaleString('pt-BR')} pacotes</div>
+    </div>
+    <div class="scorecard">
+      <div class="label">Bulky (Volumoso)</div>
+      <div class="value">${(bulky/total*100).toFixed(1)}%</div>
+      <div class="sub">${bulky.toLocaleString('pt-BR')} pacotes</div>
+    </div>`;
 }
 
 function buildDimMap(data, dimKey) {
@@ -467,22 +499,38 @@ function countChpAlerts(data, dimKey, threshold) {
 function renderCards(data, threshold, mode) {
   // Sempre agrupa por Origem
   const origemMap = {};
+  const isGM = r => String(r['Tipo_Unidad']||'').toLowerCase().includes('general');
+  const isBulky = r => String(r['Tipo_Unidad']||'').toLowerCase().includes('bulky');
+
+  function mkSub() { return {total:0, gm:0, bulky:0}; }
+
   data.forEach(r => {
     const orig = String(r['Facility_Origem']||'').trim()||'(vazio)';
     const nodo = String(r['Tipo_Nodo']||'').trim()||'(vazio)';
     const end  = String(r['Tipo_Endereco']||'').trim()||'(vazio)';
     const dit  = String(r['INFO DIT']||'').trim().toUpperCase();
-    if (!origemMap[orig]) origemMap[orig] = {orig, total:0, early:0, ontime:0, delay:0, nodos:{}, enderecos:{}, huAlerts:0};
-    origemMap[orig].total++;
-    if (dit==='EARLY') origemMap[orig].early++;
-    else if (dit==='ON TIME') origemMap[orig].ontime++;
-    else if (dit==='DELAY') origemMap[orig].delay++;
-    // sub-breakdown por nodo
-    if (!origemMap[orig].nodos[nodo]) origemMap[orig].nodos[nodo] = 0;
-    origemMap[orig].nodos[nodo]++;
-    // sub-breakdown por endereço
-    if (!origemMap[orig].enderecos[end]) origemMap[orig].enderecos[end] = 0;
-    origemMap[orig].enderecos[end]++;
+    const gm = isGM(r), bulky = isBulky(r);
+
+    if (!origemMap[orig]) origemMap[orig] = {
+      orig, total:0,
+      early:0, earlyGM:0, earlyBulky:0,
+      ontime:0, ontimeGM:0, ontimeBulky:0,
+      delay:0, delayGM:0, delayBulky:0,
+      nodos:{}, enderecos:{}, huAlerts:0
+    };
+    const o = origemMap[orig];
+    o.total++;
+    if (dit==='EARLY')       { o.early++;  if(gm) o.earlyGM++;  if(bulky) o.earlyBulky++;  }
+    else if (dit==='ON TIME'){ o.ontime++; if(gm) o.ontimeGM++; if(bulky) o.ontimeBulky++; }
+    else if (dit==='DELAY')  { o.delay++;  if(gm) o.delayGM++;  if(bulky) o.delayBulky++;  }
+
+    // sub-breakdown nodo com GM/Bulky
+    if (!o.nodos[nodo]) o.nodos[nodo] = mkSub();
+    o.nodos[nodo].total++; if(gm) o.nodos[nodo].gm++; if(bulky) o.nodos[nodo].bulky++;
+
+    // sub-breakdown endereço com GM/Bulky
+    if (!o.enderecos[end]) o.enderecos[end] = mkSub();
+    o.enderecos[end].total++; if(gm) o.enderecos[end].gm++; if(bulky) o.enderecos[end].bulky++;
   });
 
   // Alertas CHP por Origem
@@ -501,6 +549,16 @@ function renderCards(data, threshold, mode) {
   // Paleta para sub-breakdown
   const palette = ['#3483FA','#7B2FBE','#00875A','#FF7733','#FFAD00','#F23D4F','#00A650','#2D3277'];
 
+  // helper: GM/Bulky split for a subset count
+  function gbSplit(n, gmN, bulkyN) {
+    if (n === 0) return '';
+    const gPct = (gmN/n*100).toFixed(0), bPct = (bulkyN/n*100).toFixed(0);
+    const parts = [];
+    if (gmN > 0) parts.push(`<span style="color:#3483FA;font-weight:500">${gmN.toLocaleString('pt-BR')} (${gPct}%) GM</span>`);
+    if (bulkyN > 0) parts.push(`<span style="color:#7B2FBE;font-weight:500">${bulkyN.toLocaleString('pt-BR')} (${bPct}%) Bulky</span>`);
+    return parts.length ? `<span style="margin-left:auto;font-size:11px;opacity:.85">${parts.join(' / ')}</span>` : '';
+  }
+
   document.getElementById('origem-grid').innerHTML = Object.values(origemMap).sort((a,b)=>b.total-a.total).map(o => {
     const pE=(o.early/o.total*100).toFixed(1), pO=(o.ontime/o.total*100).toFixed(1), pD=(o.delay/o.total*100).toFixed(1);
 
@@ -509,14 +567,14 @@ function renderCards(data, threshold, mode) {
     if (mode === 'promessa') {
       barHTML = `<div class="bar-early" style="width:${pE}%"></div><div class="bar-ontime" style="width:${pO}%"></div><div class="bar-delay" style="width:${pD}%"></div>`;
       legendHTML = `
-        <span class="leg"><span class="leg-dot" style="background:var(--early-bar)"></span>${o.early.toLocaleString('pt-BR')} (${pE}%) Early</span>
-        <span class="leg"><span class="leg-dot" style="background:var(--ontime-bar)"></span>${o.ontime.toLocaleString('pt-BR')} (${pO}%) On Time</span>
-        <span class="leg"><span class="leg-dot" style="background:var(--delay-bar)"></span>${o.delay.toLocaleString('pt-BR')} (${pD}%) Delay</span>`;
+        <span class="leg" style="display:flex;justify-content:space-between;width:100%"><span style="display:flex;align-items:center;gap:6px"><span class="leg-dot" style="background:var(--early-bar)"></span>${o.early.toLocaleString('pt-BR')} (${pE}%) Early</span>${gbSplit(o.early, o.earlyGM, o.earlyBulky)}</span>
+        <span class="leg" style="display:flex;justify-content:space-between;width:100%"><span style="display:flex;align-items:center;gap:6px"><span class="leg-dot" style="background:var(--ontime-bar)"></span>${o.ontime.toLocaleString('pt-BR')} (${pO}%) On Time</span>${gbSplit(o.ontime, o.ontimeGM, o.ontimeBulky)}</span>
+        <span class="leg" style="display:flex;justify-content:space-between;width:100%"><span style="display:flex;align-items:center;gap:6px"><span class="leg-dot" style="background:var(--delay-bar)"></span>${o.delay.toLocaleString('pt-BR')} (${pD}%) Delay</span>${gbSplit(o.delay, o.delayGM, o.delayBulky)}</span>`;
     } else {
       const subMap = mode === 'nodo' ? o.nodos : o.enderecos;
-      const entries = Object.entries(subMap).sort((a,b)=>b[1]-a[1]);
-      barHTML = entries.map(([k,v],i) => `<div style="width:${(v/o.total*100).toFixed(1)}%;background:${palette[i%palette.length]};height:100%"></div>`).join('');
-      legendHTML = entries.map(([k,v],i) => `<span class="leg"><span class="leg-dot" style="background:${palette[i%palette.length]}"></span>${k}: ${v.toLocaleString('pt-BR')} (${(v/o.total*100).toFixed(1)}%)</span>`).join('');
+      const entries = Object.entries(subMap).sort((a,b)=>b[1].total-a[1].total);
+      barHTML = entries.map(([k,v],i) => `<div style="width:${(v.total/o.total*100).toFixed(1)}%;background:${palette[i%palette.length]};height:100%"></div>`).join('');
+      legendHTML = entries.map(([k,v],i) => `<span class="leg" style="display:flex;justify-content:space-between;width:100%"><span style="display:flex;align-items:center;gap:6px"><span class="leg-dot" style="background:${palette[i%palette.length]}"></span>${k}: ${v.total.toLocaleString('pt-BR')} (${(v.total/o.total*100).toFixed(1)}%)</span>${gbSplit(v.total, v.gm, v.bulky)}</span>`).join('');
     }
 
     return `<div class="origem-card ${o.huAlerts>0?'has-alert':''}">
@@ -565,12 +623,14 @@ function renderTable(rows) {
   });
 
   const thead = `<table><thead><tr>
-    <th>HU</th><th>Ciclo</th><th>Tipo Nodo</th><th style="text-align:right">Total</th>
+    <th>HU</th><th>Ciclo</th><th>Tipo Nodo</th><th>Unidad</th><th style="text-align:right">Total</th>
     <th>Early</th><th>On Time</th><th>Delay</th><th>Status</th>
   </tr></thead>`;
 
   card.innerHTML = Object.values(groups).sort((a,b)=>b.total-a.total).map((g,gi) => {
     const pO = g.total>0?(g.ontime/g.total*100).toFixed(1):0;
+    const gTotal = g.rows.reduce((s,r)=>s+r.gm,0);
+    const bTotal = g.rows.reduce((s,r)=>s+r.bulky,0);
     const huRows = g.rows.map(r => {
       const isChp = r.ciclo==='CHP';
       const status = r.alert ? `<span class="pill pill-delay">⚠ ALERTA</span>`
@@ -582,6 +642,12 @@ function renderTable(rows) {
         <td style="font-family:monospace;font-size:12px;font-weight:500" title="${r.hu}">${r.hu.length>16?'…'+r.hu.slice(-12):r.hu}</td>
         <td><span class="pill-ciclo">${r.ciclo}</span></td>
         <td style="color:var(--text-muted)">${r.nodo}</td>
+        <td>${r.gm>0&&r.bulky>0
+          ? `<span style="font-size:11px"><span style="color:#3483FA;font-weight:500">GM:${r.gm}</span> / <span style="color:#7B2FBE;font-weight:500">Bulky:${r.bulky}</span></span>`
+          : r.bulky>0
+            ? `<span style="color:#7B2FBE;font-size:11px;font-weight:500">Bulky (${(r.bulky/r.total*100).toFixed(0)}%)</span>`
+            : `<span style="color:#3483FA;font-size:11px;font-weight:500">GM (${(r.gm/r.total*100).toFixed(0)}%)</span>`
+        }</td>
         <td style="text-align:right;font-weight:600">${r.total.toLocaleString('pt-BR')}</td>
         <td>${mkBar(r.early,r.pctEarly,'bar-early')}</td>
         <td>${mkBar(r.ontime,r.pctOntime,'bar-ontime')}</td>
@@ -599,6 +665,8 @@ function renderTable(rows) {
           <span>${g.total.toLocaleString('pt-BR')} pcts</span>
           <span>${pO}% ON TIME</span>
           ${g.alerts>0?`<span style="color:var(--delay-text);font-weight:600">⚠ ${g.alerts} alerta${g.alerts>1?'s':''}</span>`:''}
+          ${gTotal>0?`<span style="color:#3483FA;font-size:11px">GM: ${gTotal.toLocaleString('pt-BR')}</span>`:''}
+          ${bTotal>0?`<span style="color:#7B2FBE;font-size:11px">Bulky: ${bTotal.toLocaleString('pt-BR')}</span>`:''}
         </div>
         <span class="og-arrow">▶</span>
       </div>
