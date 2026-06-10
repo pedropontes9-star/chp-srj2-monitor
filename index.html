@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>MELI Monitor — AM/PM/CHP</title>
+<title>Monitor — Ciclos</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
@@ -39,7 +39,6 @@
   .drop-area { border: 2px dashed var(--border); border-radius: var(--radius); padding: 2.5rem 1rem; cursor: pointer; transition: all .2s; position: relative; background: #f9f9f9; }
   .drop-area:hover { border-color: var(--meli-action); background: #f0f5ff; }
   .drop-area input[type=file] { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
-  .drop-icon { font-size: 40px; margin-bottom: 1rem; }
   .btn-process { margin-top: 1.5rem; width: 100%; padding: 12px; background: var(--meli-action); color: white; border: none; border-radius: var(--radius); font-size: 16px; font-weight: 600; cursor: pointer; transition: background .2s; }
   .btn-process:hover { background: #2968c8; }
   .btn-process:disabled { background: #cccccc; cursor: not-allowed; }
@@ -47,11 +46,9 @@
   #dashboard { display: none; padding: 24px; max-width: 1400px; margin: 0 auto; }
   .dash-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
   .reload-btn { font-size: 13px; color: var(--meli-action); background: white; border: 1px solid var(--meli-action); border-radius: var(--radius); padding: 6px 16px; cursor: pointer; font-weight: 500; }
-  .reload-btn:hover { background: #f0f5ff; }
 
   .scorecard-row { display: grid; grid-template-columns: repeat(6, 1fr); gap: 10px; margin-bottom: 24px; }
   @media (max-width: 1024px) { .scorecard-row { grid-template-columns: repeat(3, 1fr); } }
-  @media (max-width: 600px) { .scorecard-row { grid-template-columns: repeat(2, 1fr); } }
   .scorecard { background: var(--surface); border-radius: var(--radius); padding: 16px; box-shadow: var(--shadow); border: 1px solid transparent; }
   .scorecard .label { font-size: 11px; color: var(--text-muted); font-weight: 600; text-transform: uppercase; margin-bottom: 8px; letter-spacing: 0.02em; }
   .scorecard .value { font-size: 24px; font-weight: 600; color: var(--text); line-height: 1.2; }
@@ -59,22 +56,29 @@
   .scorecard.alert-card { border-color: var(--delay-bar); background: var(--delay-fill); }
   .scorecard.alert-card .value { color: var(--delay-text); }
 
-  /* Filtros */
-  .filter-bar { background: var(--surface); padding: 14px 20px; border-radius: var(--radius); box-shadow: var(--shadow); display: flex; gap: 20px; flex-wrap: wrap; align-items: flex-start; margin-bottom: 24px; }
-  .filter-group { display: flex; flex-direction: column; gap: 6px; }
+  /* Filter bar — 2 linhas */
+  .filter-bar { background: var(--surface); padding: 14px 20px; border-radius: var(--radius); box-shadow: var(--shadow); margin-bottom: 24px; display: flex; flex-direction: column; gap: 12px; }
+  .filter-row { display: flex; gap: 16px; flex-wrap: wrap; align-items: flex-end; }
+  .filter-group { display: flex; flex-direction: column; gap: 5px; }
   .filter-group label { font-size: 11px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: .03em; }
   .filter-bar select { font-size: 13px; padding: 6px 10px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); color: var(--text); cursor: pointer; }
 
-  /* Multi-select ciclos */
-  .ciclo-checkboxes { display: flex; flex-wrap: wrap; gap: 6px; }
-  .ciclo-chip { display: flex; align-items: center; gap: 5px; padding: 4px 10px; border-radius: 20px; border: 1px solid var(--border); background: #f5f5f5; cursor: pointer; font-size: 12px; font-weight: 500; color: var(--text-muted); transition: all .15s; user-select: none; }
-  .ciclo-chip input { display: none; }
+  /* Ciclo chips */
+  .ciclo-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .ciclo-chip { padding: 4px 10px; border-radius: 20px; border: 1px solid var(--border); background: #f5f5f5; cursor: pointer; font-size: 12px; font-weight: 500; color: var(--text-muted); transition: all .15s; user-select: none; }
   .ciclo-chip.active { background: var(--meli-blue); color: white; border-color: var(--meli-blue); }
   .ciclo-chip.chp.active { background: #7B2FBE; border-color: #7B2FBE; }
   .ciclo-chip.am.active { background: #0066CC; border-color: #0066CC; }
   .ciclo-chip.pm.active { background: #00875A; border-color: #00875A; }
+  .chip-deselect { padding: 4px 10px; border-radius: 20px; border: 1px solid #ddd; background: transparent; cursor: pointer; font-size: 11px; font-weight: 500; color: var(--text-hint); transition: all .15s; user-select: none; }
+  .chip-deselect:hover { border-color: var(--delay-bar); color: var(--delay-text); background: var(--delay-fill); }
+  .filter-divider { width: 1px; height: 20px; background: var(--border); margin: 0 4px; align-self: center; }
 
-  .section-title { font-size: 13px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; margin-bottom: 12px; letter-spacing: 0.05em; }
+  .section-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+  .section-title { font-size: 13px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; }
+  .section-toggle { display: flex; gap: 2px; background: #f0f0f0; border-radius: 5px; padding: 2px; }
+  .toggle-btn { padding: 4px 12px; border-radius: 4px; font-size: 12px; font-weight: 500; border: none; cursor: pointer; background: transparent; color: var(--text-muted); transition: all .15s; }
+  .toggle-btn.active { background: white; color: var(--meli-blue); box-shadow: 0 1px 2px rgba(0,0,0,0.1); }
 
   .origem-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; margin-bottom: 32px; }
   .origem-card { background: var(--surface); border-radius: var(--radius); padding: 16px; box-shadow: var(--shadow); border: 1px solid transparent; }
@@ -91,38 +95,50 @@
   .leg-dot { width: 8px; height: 8px; border-radius: 50%; }
   .alert-badge { margin-top: 6px; font-size: 10px; font-weight: 600; color: var(--delay-text); background: var(--delay-fill); padding: 2px 6px; border-radius: 4px; display: inline-block; }
 
+  .chart-card { background: var(--surface); border-radius: var(--radius); padding: 20px; box-shadow: var(--shadow); margin-bottom: 32px; }
+
+  /* Tabela cascata por Origem */
   .table-card { background: var(--surface); border-radius: var(--radius); box-shadow: var(--shadow); overflow: hidden; margin-bottom: 40px; }
+  .origem-group { border-bottom: 1px solid var(--border); }
+  .origem-group:last-child { border-bottom: none; }
+  .origem-group-header { display: flex; align-items: center; gap: 12px; padding: 12px 16px; cursor: pointer; background: #fafafa; transition: background .15s; user-select: none; }
+  .origem-group-header:hover { background: #f0f4ff; }
+  .origem-group-header .og-name { font-weight: 600; font-size: 13px; color: var(--meli-blue); flex: 1; }
+  .origem-group-header .og-stats { display: flex; gap: 12px; font-size: 12px; color: var(--text-muted); }
+  .origem-group-header .og-arrow { font-size: 11px; color: var(--text-hint); transition: transform .2s; }
+  .origem-group-header.expanded .og-arrow { transform: rotate(90deg); }
+  .origem-group-table { display: none; }
+  .origem-group-table.open { display: block; }
   table { width: 100%; border-collapse: collapse; }
-  th { background: #f7f7f7; padding: 12px 16px; font-size: 11px; font-weight: 600; color: var(--text-muted); text-align: left; text-transform: uppercase; border-bottom: 1px solid var(--border); white-space: nowrap; }
-  td { padding: 10px 16px; font-size: 13px; border-bottom: 1px solid #f0f0f0; }
+  th { background: #f7f7f7; padding: 10px 16px; font-size: 11px; font-weight: 600; color: var(--text-muted); text-align: left; text-transform: uppercase; border-bottom: 1px solid var(--border); white-space: nowrap; }
+  td { padding: 9px 16px; font-size: 13px; border-bottom: 1px solid #f5f5f5; }
+  tr:last-child td { border-bottom: none; }
   tr.row-alert td { background-color: var(--delay-fill); }
   .pill { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; }
   .pill-early { background: var(--early-fill); color: var(--early-text); }
   .pill-ontime { background: var(--ontime-fill); color: var(--ontime-text); }
   .pill-delay { background: var(--delay-fill); color: var(--delay-text); }
-  .pill-ciclo { background: #EEF0FF; color: var(--meli-blue); font-size: 10px; padding: 1px 6px; border-radius: 3px; margin-left: 4px; }
+  .pill-ciclo { background: #EEF0FF; color: var(--meli-blue); font-size: 10px; padding: 1px 6px; border-radius: 3px; }
   .mini-bar-container { display: flex; align-items: center; gap: 8px; }
   .mini-bar-bg { width: 60px; height: 6px; background: #eee; border-radius: 3px; overflow: hidden; flex-shrink: 0; }
   .mini-bar-fill { height: 100%; border-radius: 3px; }
   .pct-val { font-size: 12px; min-width: 80px; }
   .pct-alert { color: var(--delay-text); font-weight: 600; }
-
-  .chart-card { background: var(--surface); border-radius: var(--radius); padding: 20px; box-shadow: var(--shadow); margin-bottom: 32px; }
+  .og-alert-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--delay-bar); flex-shrink: 0; }
 </style>
 </head>
 <body>
 
 <header class="meli-header">
-  <h1><span class="logo-box">MELI</span> Monitor AM · PM · CHP</h1>
+  <h1><span class="logo-box">MELI</span> Monitor — Ciclos</h1>
   <div id="dash-date" style="font-size:14px; color: var(--meli-blue); font-weight:500"></div>
 </header>
 
 <div id="upload-zone">
   <div class="upload-card" style="max-width:640px">
-    <div class="drop-icon">📦</div>
-    <h2>Bem-vindo ao MELI Monitor</h2>
+    <div style="font-size:40px; margin-bottom:1rem">📦</div>
+    <h2>Bem-vindo ao Monitor</h2>
     <p>Carregue as bases AM e PM para gerar o relatório consolidado.</p>
-
     <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:20px">
       <div>
         <div style="font-size:11px; font-weight:600; color:#0066CC; text-transform:uppercase; letter-spacing:.04em; margin-bottom:6px">Base AM</div>
@@ -143,7 +159,6 @@
         <div id="file-pm" style="margin-top:8px; font-size:12px; color:#555; min-height:20px"></div>
       </div>
     </div>
-
     <p style="font-size:12px; color:#999; margin-bottom:16px">Pelo menos um arquivo é necessário. Os dois juntos dão a visão completa.</p>
     <button class="btn-process" id="btn-process" disabled onclick="processFiles()">Gerar Relatório</button>
   </div>
@@ -151,78 +166,92 @@
 
 <div id="dashboard">
   <div class="dash-top">
-    <h2 style="font-weight:600; font-size:18px">MELI Monitor</h2>
+    <h2 style="font-weight:600; font-size:18px">Monitor — Ciclos</h2>
     <button class="reload-btn" onclick="resetDash()">↩ Carregar nova base</button>
   </div>
 
   <div class="scorecard-row" id="scorecards"></div>
 
+  <!-- Filtros -->
   <div class="filter-bar">
-    <div class="filter-group">
-      <label>Ciclos</label>
-      <div class="ciclo-checkboxes" id="ciclo-checkboxes"></div>
+    <!-- Linha 1: Ciclos -->
+    <div class="filter-row">
+      <div class="filter-group">
+        <label>Ciclos</label>
+        <div class="ciclo-row">
+          <div id="ciclo-checkboxes" style="display:flex; gap:6px; flex-wrap:wrap"></div>
+          <div class="filter-divider"></div>
+          <span class="chip-deselect" onclick="deselectAllCiclos()">✕ Desmarcar todos</span>
+        </div>
+      </div>
     </div>
-    <div class="filter-group">
-      <label>Tipo Nodo</label>
-      <select id="filter-nodo" onchange="render()"><option value="">Todos</option></select>
-    </div>
-    <div class="filter-group">
-      <label>Origem</label>
-      <select id="filter-origem" onchange="render()"><option value="">Todas</option></select>
-    </div>
-    <div class="filter-group">
-      <label>% ON TIME alerta (CHP)</label>
-      <select id="filter-threshold" onchange="render()">
-        <option value="5">5%</option>
-        <option value="3">3%</option>
-        <option value="10">10%</option>
-        <option value="1">1%</option>
-      </select>
-    </div>
-    <div class="filter-group">
-      <label>Exibição tabela</label>
-      <select id="filter-show" onchange="render()">
-        <option value="all">Todas as HUs</option>
-        <option value="alert">Apenas alertas CHP</option>
-      </select>
+    <!-- Linha 2: Selects -->
+    <div class="filter-row">
+      <div class="filter-group">
+        <label>Tipo Nodo</label>
+        <select id="filter-nodo" onchange="render()"><option value="">Todos</option></select>
+      </div>
+      <div class="filter-group">
+        <label>Tipo Endereço</label>
+        <select id="filter-endereco" onchange="render()"><option value="">Todos</option></select>
+      </div>
+      <div class="filter-group">
+        <label>Origem</label>
+        <select id="filter-origem" onchange="render()"><option value="">Todas</option></select>
+      </div>
+      <div class="filter-group">
+        <label>% ON TIME alerta (CHP)</label>
+        <select id="filter-threshold" onchange="render()">
+          <option value="5">5%</option>
+          <option value="3">3%</option>
+          <option value="10">10%</option>
+          <option value="1">1%</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <label>Exibição tabela</label>
+        <select id="filter-show" onchange="render()">
+          <option value="all">Todas as HUs</option>
+          <option value="alert">Apenas alertas CHP</option>
+        </select>
+      </div>
     </div>
   </div>
 
-  <p class="section-title">Visão por origem</p>
+  <!-- Visão por cards -->
+  <div class="section-header">
+    <span class="section-title" id="cards-title">Visão por Origem</span>
+    <div class="section-toggle">
+      <button class="toggle-btn active" onclick="setCardMode('promessa',this)">Promessa</button>
+      <button class="toggle-btn" onclick="setCardMode('nodo',this)">Nodo</button>
+      <button class="toggle-btn" onclick="setCardMode('endereco',this)">Tipo Endereço</button>
+    </div>
+  </div>
   <div class="origem-grid" id="origem-grid"></div>
 
-  <p class="section-title">Distribuição por origem</p>
+  <!-- Gráfico -->
+  <div class="section-header">
+    <span class="section-title" id="chart-title">Distribuição por Origem</span>
+    <div class="section-toggle">
+      <button class="toggle-btn active" onclick="setChartDim('Facility_Origem','chart-title','Distribuição por Origem',this)">Origem</button>
+      <button class="toggle-btn" onclick="setChartDim('Tipo_Nodo','chart-title','Distribuição por Nodo',this)">Nodo</button>
+      <button class="toggle-btn" onclick="setChartDim('Tipo_Endereco','chart-title','Distribuição por Tipo Endereço',this)">Tipo Endereço</button>
+    </div>
+  </div>
   <div class="chart-card">
-    <canvas id="chart-origem" style="max-height: 300px;"></canvas>
+    <canvas id="chart-origem" style="max-height:300px"></canvas>
   </div>
 
+  <!-- Tabela cascata -->
   <p class="section-title">Detalhe por HU</p>
-  <div class="table-card">
-    <table>
-      <thead>
-        <tr>
-          <th>HU</th>
-          <th>Ciclo</th>
-          <th>Origem</th>
-          <th>Tipo Nodo</th>
-          <th style="text-align:right">Total</th>
-          <th>Early</th>
-          <th>On Time</th>
-          <th>Delay</th>
-          <th>Status</th>
-        </tr>
-      </thead>
-      <tbody id="hu-tbody"></tbody>
-    </table>
-  </div>
+  <div class="table-card" id="hu-table-card"></div>
 </div>
 
 <script>
-let fileAM = null;
-let filePM = null;
-let allData = [];
-let chartInstance = null;
+let fileAM = null, filePM = null, allData = [], chartInstance = null;
 let activeCiclos = new Set();
+let cardMode = 'promessa'; // 'promessa' | 'nodo' | 'endereco'
+let chartDim = 'Facility_Origem';
 
 const btnProcess = document.getElementById('btn-process');
 
@@ -234,315 +263,355 @@ function getCicloLabel(ciclo, turno) {
   return `${c} (${turno})`;
 }
 
-function checkReady() {
-  btnProcess.disabled = !fileAM && !filePM;
-}
+function checkReady() { btnProcess.disabled = !fileAM && !filePM; }
 
 function setupDrop(dropId, inputId, turno, labelId) {
   const drop = document.getElementById(dropId);
   const input = document.getElementById(inputId);
   const label = document.getElementById(labelId);
   const color = turno === 'AM' ? '#0066CC' : '#00875A';
-
-  drop.addEventListener('dragover', e => { e.preventDefault(); drop.style.borderColor = color; drop.style.background = turno === 'AM' ? '#f0f5ff' : '#f0fff8'; });
-  drop.addEventListener('dragleave', () => { drop.style.borderColor = color + '44'; drop.style.background = '#f9f9f9'; });
+  drop.addEventListener('dragover', e => { e.preventDefault(); drop.style.borderColor = color; drop.style.background = turno==='AM'?'#f0f5ff':'#f0fff8'; });
+  drop.addEventListener('dragleave', () => { drop.style.borderColor = color+'44'; drop.style.background='#f9f9f9'; });
   drop.addEventListener('drop', e => {
-    e.preventDefault();
-    drop.style.borderColor = color + '44';
-    drop.style.background = '#f9f9f9';
+    e.preventDefault(); drop.style.borderColor=color+'44'; drop.style.background='#f9f9f9';
     const f = [...e.dataTransfer.files].find(x => x.name.endsWith('.csv'));
     if (f) setFile(f, turno, label, drop, color);
   });
-  input.addEventListener('change', () => {
-    if (input.files[0]) setFile(input.files[0], turno, label, drop, color);
-  });
+  input.addEventListener('change', () => { if (input.files[0]) setFile(input.files[0], turno, label, drop, color); });
 }
 
 function setFile(f, turno, label, drop, color) {
-  if (turno === 'AM') fileAM = f;
-  else filePM = f;
+  if (turno === 'AM') fileAM = f; else filePM = f;
   label.innerHTML = `<span style="color:${color}; font-weight:500">✓ ${f.name}</span> <span style="color:#999">(${(f.size/1024).toFixed(0)} KB)</span>`;
   drop.style.borderColor = color;
   checkReady();
 }
 
-setupDrop('drop-am', 'file-input-am', 'AM', 'file-am');
-setupDrop('drop-pm', 'file-input-pm', 'PM', 'file-pm');
+setupDrop('drop-am','file-input-am','AM','file-am');
+setupDrop('drop-pm','file-input-pm','PM','file-pm');
 
 function processFiles() {
   if (!fileAM && !filePM) return;
-  btnProcess.disabled = true;
-  btnProcess.textContent = 'Processando...';
+  btnProcess.disabled = true; btnProcess.textContent = 'Processando...';
   allData = [];
   const toProcess = [];
-  if (fileAM) toProcess.push({ f: fileAM, turno: 'AM' });
-  if (filePM) toProcess.push({ f: filePM, turno: 'PM' });
+  if (fileAM) toProcess.push({f:fileAM, turno:'AM'});
+  if (filePM) toProcess.push({f:filePM, turno:'PM'});
   let parsed = 0;
-  toProcess.forEach(({ f, turno }) => {
-    Papa.parse(f, {
-      header: true,
-      skipEmptyLines: true,
-      complete: res => {
-        res.data.forEach(r => {
-          r._turno = turno;
-          r._cicloLabel = getCicloLabel(r['CICLO FINAL'], turno);
-        });
-        allData = allData.concat(res.data);
-        parsed++;
-        if (parsed === toProcess.length) finalize();
-      }
-    });
+  toProcess.forEach(({f, turno}) => {
+    Papa.parse(f, { header:true, skipEmptyLines:true, complete: res => {
+      res.data.forEach(r => { r._turno=turno; r._cicloLabel=getCicloLabel(r['CICLO FINAL'],turno); });
+      allData = allData.concat(res.data);
+      if (++parsed === toProcess.length) finalize();
+    }});
   });
 }
 
 function finalize() {
-  btnProcess.disabled = false;
-  btnProcess.textContent = 'Gerar Relatório';
-  document.getElementById('upload-zone').style.display = 'none';
-  document.getElementById('dashboard').style.display = 'block';
-  document.getElementById('dash-date').textContent = '— ' + new Date().toLocaleDateString('pt-BR', {day:'2-digit',month:'2-digit',year:'numeric'});
+  btnProcess.disabled=false; btnProcess.textContent='Gerar Relatório';
+  document.getElementById('upload-zone').style.display='none';
+  document.getElementById('dashboard').style.display='block';
+  document.getElementById('dash-date').textContent = '— ' + new Date().toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric'});
 
-  // Popula filtro de ciclos — AM, PM, CHP primeiro, depois os demais em ordem alfabética
-  const priority = ['AM', 'PM', 'CHP'];
-  const ciclos = [...new Set(allData.map(r => r._cicloLabel).filter(Boolean))].sort((a, b) => {
-    const ia = priority.indexOf(a), ib = priority.indexOf(b);
-    if (ia !== -1 && ib !== -1) return ia - ib;
-    if (ia !== -1) return -1;
-    if (ib !== -1) return 1;
+  const priority = ['AM','PM','CHP'];
+  const ciclos = [...new Set(allData.map(r=>r._cicloLabel).filter(Boolean))].sort((a,b)=>{
+    const ia=priority.indexOf(a), ib=priority.indexOf(b);
+    if(ia!==-1&&ib!==-1) return ia-ib;
+    if(ia!==-1) return -1; if(ib!==-1) return 1;
     return a.localeCompare(b);
   });
   activeCiclos = new Set(ciclos);
+
   const chips = document.getElementById('ciclo-checkboxes');
   chips.innerHTML = ciclos.map(c => {
-    const cls = c === 'CHP' ? 'chp' : c === 'AM' ? 'am' : c === 'PM' ? 'pm' : '';
-    return `<label class="ciclo-chip ${cls} active" onclick="toggleCiclo('${c}', this)">${c}</label>`;
+    const cls = c==='CHP'?'chp':c==='AM'?'am':c==='PM'?'pm':'';
+    return `<span class="ciclo-chip ${cls} active" onclick="toggleCiclo('${c}',this)">${c}</span>`;
   }).join('');
 
-  // Popula filtro Tipo_Nodo
-  const nodos = [...new Set(allData.map(r => r['Tipo_Nodo']).filter(Boolean))].sort();
-  document.getElementById('filter-nodo').innerHTML =
-    '<option value="">Todos</option>' + nodos.map(n => `<option value="${n}">${n}</option>`).join('');
+  const nodos = [...new Set(allData.map(r=>r['Tipo_Nodo']).filter(Boolean))].sort();
+  document.getElementById('filter-nodo').innerHTML = '<option value="">Todos</option>' + nodos.map(n=>`<option>${n}</option>`).join('');
 
-  // Popula filtro Origem
-  const origens = [...new Set(allData.map(r => r['Facility_Origem']).filter(Boolean))].sort();
-  document.getElementById('filter-origem').innerHTML =
-    '<option value="">Todas</option>' + origens.map(o => `<option value="${o}">${o}</option>`).join('');
+  const enderecos = [...new Set(allData.map(r=>r['Tipo_Endereco']).filter(Boolean))].sort();
+  document.getElementById('filter-endereco').innerHTML = '<option value="">Todos</option>' + enderecos.map(e=>`<option>${e}</option>`).join('');
+
+  const origens = [...new Set(allData.map(r=>r['Facility_Origem']).filter(Boolean))].sort();
+  document.getElementById('filter-origem').innerHTML = '<option value="">Todas</option>' + origens.map(o=>`<option>${o}</option>`).join('');
 
   render();
 }
 
 function toggleCiclo(ciclo, el) {
-  if (activeCiclos.has(ciclo)) {
-    activeCiclos.delete(ciclo);
-    el.classList.remove('active');
-  } else {
-    activeCiclos.add(ciclo);
-    el.classList.add('active');
-  }
+  if (activeCiclos.has(ciclo)) { activeCiclos.delete(ciclo); el.classList.remove('active'); }
+  else { activeCiclos.add(ciclo); el.classList.add('active'); }
   render();
+}
+
+function deselectAllCiclos() {
+  activeCiclos.clear();
+  document.querySelectorAll('.ciclo-chip').forEach(el => el.classList.remove('active'));
+  render();
+}
+
+function setCardMode(mode, btn) {
+  cardMode = mode;
+  const labels = {promessa:'Visão por Origem — Promessa', nodo:'Visão por Origem — Nodo', endereco:'Visão por Origem — Tipo Endereço'};
+  document.getElementById('cards-title').textContent = labels[mode];
+  btn.closest('.section-toggle').querySelectorAll('.toggle-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  render();
+}
+
+function setChartDim(dim, titleId, label, btn) {
+  chartDim = dim;
+  document.getElementById(titleId).textContent = label;
+  btn.closest('.section-toggle').querySelectorAll('.toggle-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  render();
+}
+
+function getFilteredData() {
+  let data = allData.filter(r => activeCiclos.has(r._cicloLabel));
+  const orig = document.getElementById('filter-origem').value;
+  const nodo = document.getElementById('filter-nodo').value;
+  const end  = document.getElementById('filter-endereco').value;
+  if (orig) data = data.filter(r => r['Facility_Origem'] === orig);
+  if (nodo) data = data.filter(r => r['Tipo_Nodo'] === nodo);
+  if (end)  data = data.filter(r => r['Tipo_Endereco'] === end);
+  return data;
 }
 
 function render() {
   const threshold = parseFloat(document.getElementById('filter-threshold').value);
-  const origemFilter = document.getElementById('filter-origem').value;
-  const nodoFilter = document.getElementById('filter-nodo').value;
   const showFilter = document.getElementById('filter-show').value;
+  const data = getFilteredData();
 
-  let data = allData.filter(r => activeCiclos.has(r._cicloLabel));
-  if (origemFilter) data = data.filter(r => r['Facility_Origem'] === origemFilter);
-  if (nodoFilter) data = data.filter(r => r['Tipo_Nodo'] === nodoFilter);
-
-  // Agrupa por HU
+  // Build HU rows
   const huMap = {};
   data.forEach(r => {
-    const hu = String(r['HU'] || '').trim();
-    const orig = String(r['Facility_Origem'] || '').trim();
-    const nodo = String(r['Tipo_Nodo'] || '').trim();
-    const dit = String(r['INFO DIT'] || '').trim().toUpperCase();
-    const ciclo = r._cicloLabel;
+    const hu = String(r['HU']||'').trim();
     if (!hu) return;
-    if (!huMap[hu]) huMap[hu] = { hu, orig, nodo, ciclo, early: 0, ontime: 0, delay: 0, total: 0 };
-    if (dit === 'EARLY') huMap[hu].early++;
-    else if (dit === 'ON TIME') huMap[hu].ontime++;
-    else if (dit === 'DELAY') huMap[hu].delay++;
+    const orig = String(r['Facility_Origem']||'').trim();
+    const nodo = String(r['Tipo_Nodo']||'').trim();
+    const end  = String(r['Tipo_Endereco']||'').trim();
+    const dit  = String(r['INFO DIT']||'').trim().toUpperCase();
+    const ciclo = r._cicloLabel;
+    if (!huMap[hu]) huMap[hu] = {hu, orig, nodo, end, ciclo, early:0, ontime:0, delay:0, total:0};
+    if (dit==='EARLY') huMap[hu].early++;
+    else if (dit==='ON TIME') huMap[hu].ontime++;
+    else if (dit==='DELAY') huMap[hu].delay++;
     huMap[hu].total++;
   });
 
   let rows = Object.values(huMap).map(h => ({
     ...h,
-    pctOntime: h.total > 0 ? (h.ontime / h.total * 100) : 0,
-    pctDelay: h.total > 0 ? (h.delay / h.total * 100) : 0,
-    pctEarly: h.total > 0 ? (h.early / h.total * 100) : 0,
-    // Alerta só para CHP
-    alert: h.ciclo === 'CHP' && h.total > 0 && (h.ontime / h.total * 100) > threshold
-  })).sort((a, b) => b.pctOntime - a.pctOntime);
+    pctOntime: h.total>0?(h.ontime/h.total*100):0,
+    pctDelay:  h.total>0?(h.delay/h.total*100):0,
+    pctEarly:  h.total>0?(h.early/h.total*100):0,
+    alert: h.ciclo==='CHP' && h.total>0 && (h.ontime/h.total*100)>threshold
+  })).sort((a,b) => b.pctOntime - a.pctOntime);
 
-  if (showFilter === 'alert') rows = rows.filter(r => r.alert);
+  if (showFilter==='alert') rows = rows.filter(r=>r.alert);
 
-  renderScorecards(rows, threshold, data);
-  renderOrigem(data, threshold);
-  renderChart(data);
+  renderScorecards(rows, threshold);
+  renderCards(data, threshold, cardMode);
+  renderChart(data, chartDim);
   renderTable(rows);
 }
 
-function renderScorecards(rows, threshold, data) {
-  const alertCount = rows.filter(r => r.alert).length;
-  const totalHUs = rows.length;
-  const gt = rows.reduce((s, r) => s + r.total, 0);
-  const go = rows.reduce((s, r) => s + r.ontime, 0);
-  const ge = rows.reduce((s, r) => s + r.early, 0);
-  const gd = rows.reduce((s, r) => s + r.delay, 0);
-  const chpHUs = rows.filter(r => r.ciclo === 'CHP').length;
-
+function renderScorecards(rows, threshold) {
+  const alertCount = rows.filter(r=>r.alert).length;
+  const gt = rows.reduce((s,r)=>s+r.total,0);
+  const go = rows.reduce((s,r)=>s+r.ontime,0);
+  const ge = rows.reduce((s,r)=>s+r.early,0);
+  const gd = rows.reduce((s,r)=>s+r.delay,0);
+  const chpHUs = rows.filter(r=>r.ciclo==='CHP').length;
   document.getElementById('scorecards').innerHTML = `
-    <div class="scorecard">
-      <div class="label">Total Pacotes</div>
-      <div class="value">${gt.toLocaleString('pt-BR')}</div>
-      <div class="sub">Ciclos selecionados</div>
-    </div>
-    <div class="scorecard">
-      <div class="label">HUs Analisadas</div>
-      <div class="value">${totalHUs}</div>
-      <div class="sub">${chpHUs} CHP · ${totalHUs - chpHUs} outros</div>
-    </div>
-    <div class="scorecard ${alertCount > 0 ? 'alert-card' : ''}">
-      <div class="label">HUs CHP c/ Alerta</div>
-      <div class="value">${alertCount}</div>
-      <div class="sub">ON TIME > ${threshold}%</div>
-    </div>
-    <div class="scorecard">
-      <div class="label">ON TIME Global</div>
-      <div class="value">${gt > 0 ? (go/gt*100).toFixed(1) : 0}%</div>
-      <div class="sub">${go.toLocaleString('pt-BR')} de ${gt.toLocaleString('pt-BR')} pcts</div>
-    </div>
-    <div class="scorecard">
-      <div class="label">Early Global</div>
-      <div class="value" style="color:var(--early-bar)">${gt > 0 ? (ge/gt*100).toFixed(1) : 0}%</div>
-      <div class="sub">${ge.toLocaleString('pt-BR')} de ${gt.toLocaleString('pt-BR')} pcts</div>
-    </div>
-    <div class="scorecard">
-      <div class="label">Delay Global</div>
-      <div class="value" style="color:var(--delay-bar)">${gt > 0 ? (gd/gt*100).toFixed(1) : 0}%</div>
-      <div class="sub">${gd.toLocaleString('pt-BR')} de ${gt.toLocaleString('pt-BR')} pcts</div>
-    </div>`;
+    <div class="scorecard"><div class="label">Total Pacotes</div><div class="value">${gt.toLocaleString('pt-BR')}</div><div class="sub">Ciclos selecionados</div></div>
+    <div class="scorecard"><div class="label">HUs Analisadas</div><div class="value">${rows.length}</div><div class="sub">${chpHUs} CHP · ${rows.length-chpHUs} outros</div></div>
+    <div class="scorecard ${alertCount>0?'alert-card':''}"><div class="label">HUs CHP c/ Alerta</div><div class="value">${alertCount}</div><div class="sub">ON TIME > ${threshold}%</div></div>
+    <div class="scorecard"><div class="label">ON TIME Global</div><div class="value">${gt>0?(go/gt*100).toFixed(1):0}%</div><div class="sub">${go.toLocaleString('pt-BR')} de ${gt.toLocaleString('pt-BR')} pcts</div></div>
+    <div class="scorecard"><div class="label">Early Global</div><div class="value" style="color:var(--early-bar)">${gt>0?(ge/gt*100).toFixed(1):0}%</div><div class="sub">${ge.toLocaleString('pt-BR')} de ${gt.toLocaleString('pt-BR')} pcts</div></div>
+    <div class="scorecard"><div class="label">Delay Global</div><div class="value" style="color:var(--delay-bar)">${gt>0?(gd/gt*100).toFixed(1):0}%</div><div class="sub">${gd.toLocaleString('pt-BR')} de ${gt.toLocaleString('pt-BR')} pcts</div></div>`;
 }
 
-function renderOrigem(data, threshold) {
-  const origemMap = {};
+function buildDimMap(data, dimKey) {
+  const map = {};
   data.forEach(r => {
-    const orig = String(r['Facility_Origem'] || '').trim();
-    const dit = String(r['INFO DIT'] || '').trim().toUpperCase();
-    if (!orig) return;
-    if (!origemMap[orig]) origemMap[orig] = { orig, early: 0, ontime: 0, delay: 0, total: 0, huAlerts: 0 };
-    if (dit === 'EARLY') origemMap[orig].early++;
-    else if (dit === 'ON TIME') origemMap[orig].ontime++;
-    else if (dit === 'DELAY') origemMap[orig].delay++;
-    origemMap[orig].total++;
+    const key = String(r[dimKey]||'').trim() || '(vazio)';
+    const dit = String(r['INFO DIT']||'').trim().toUpperCase();
+    if (!map[key]) map[key] = {key, early:0, ontime:0, delay:0, total:0, huAlerts:0};
+    if (dit==='EARLY') map[key].early++;
+    else if (dit==='ON TIME') map[key].ontime++;
+    else if (dit==='DELAY') map[key].delay++;
+    map[key].total++;
   });
+  return map;
+}
 
-  // Conta alertas CHP por origem
+function countChpAlerts(data, dimKey, threshold) {
   const huCheck = {};
   data.forEach(r => {
     if (r._cicloLabel !== 'CHP') return;
-    const hu = r['HU']; const orig = r['Facility_Origem'];
-    if (!huCheck[hu]) huCheck[hu] = { orig, ontime: 0, total: 0 };
-    if (r['INFO DIT'] === 'ON TIME') huCheck[hu].ontime++;
+    const hu = r['HU'], dim = String(r[dimKey]||'').trim()||'(vazio)';
+    if (!huCheck[hu]) huCheck[hu] = {dim, ontime:0, total:0};
+    if (r['INFO DIT']==='ON TIME') huCheck[hu].ontime++;
     huCheck[hu].total++;
   });
-  const thresh = parseFloat(document.getElementById('filter-threshold').value);
+  const alerts = {};
   Object.values(huCheck).forEach(h => {
-    if ((h.ontime / h.total * 100) > thresh && origemMap[h.orig]) origemMap[h.orig].huAlerts++;
+    if ((h.ontime/h.total*100) > threshold) alerts[h.dim] = (alerts[h.dim]||0)+1;
+  });
+  return alerts;
+}
+
+function renderCards(data, threshold, mode) {
+  // Sempre agrupa por Origem
+  const origemMap = {};
+  data.forEach(r => {
+    const orig = String(r['Facility_Origem']||'').trim()||'(vazio)';
+    const nodo = String(r['Tipo_Nodo']||'').trim()||'(vazio)';
+    const end  = String(r['Tipo_Endereco']||'').trim()||'(vazio)';
+    const dit  = String(r['INFO DIT']||'').trim().toUpperCase();
+    if (!origemMap[orig]) origemMap[orig] = {orig, total:0, early:0, ontime:0, delay:0, nodos:{}, enderecos:{}, huAlerts:0};
+    origemMap[orig].total++;
+    if (dit==='EARLY') origemMap[orig].early++;
+    else if (dit==='ON TIME') origemMap[orig].ontime++;
+    else if (dit==='DELAY') origemMap[orig].delay++;
+    // sub-breakdown por nodo
+    if (!origemMap[orig].nodos[nodo]) origemMap[orig].nodos[nodo] = 0;
+    origemMap[orig].nodos[nodo]++;
+    // sub-breakdown por endereço
+    if (!origemMap[orig].enderecos[end]) origemMap[orig].enderecos[end] = 0;
+    origemMap[orig].enderecos[end]++;
   });
 
-  document.getElementById('origem-grid').innerHTML = Object.values(origemMap).sort((a, b) => b.total - a.total).map(o => {
-    const pE = (o.early/o.total*100).toFixed(1);
-    const pO = (o.ontime/o.total*100).toFixed(1);
-    const pD = (o.delay/o.total*100).toFixed(1);
-    return `
-    <div class="origem-card ${o.huAlerts > 0 ? 'has-alert' : ''}">
-      <div class="origem-header">
-        <span class="origem-name">${o.orig}</span>
-        <span class="origem-total">${o.total.toLocaleString('pt-BR')} pcts</span>
-      </div>
-      <div class="origem-bar-row">
-        <div class="bar-early" style="width:${pE}%"></div>
-        <div class="bar-ontime" style="width:${pO}%"></div>
-        <div class="bar-delay" style="width:${pD}%"></div>
-      </div>
-      <div class="origem-legend">
+  // Alertas CHP por Origem
+  const huCheck = {};
+  data.forEach(r => {
+    if (r._cicloLabel !== 'CHP') return;
+    const hu = r['HU'], orig = String(r['Facility_Origem']||'').trim()||'(vazio)';
+    if (!huCheck[hu]) huCheck[hu] = {orig, ontime:0, total:0};
+    if (r['INFO DIT']==='ON TIME') huCheck[hu].ontime++;
+    huCheck[hu].total++;
+  });
+  Object.values(huCheck).forEach(h => {
+    if ((h.ontime/h.total*100)>threshold && origemMap[h.orig]) origemMap[h.orig].huAlerts++;
+  });
+
+  // Paleta para sub-breakdown
+  const palette = ['#3483FA','#7B2FBE','#00875A','#FF7733','#FFAD00','#F23D4F','#00A650','#2D3277'];
+
+  document.getElementById('origem-grid').innerHTML = Object.values(origemMap).sort((a,b)=>b.total-a.total).map(o => {
+    const pE=(o.early/o.total*100).toFixed(1), pO=(o.ontime/o.total*100).toFixed(1), pD=(o.delay/o.total*100).toFixed(1);
+
+    let barHTML, legendHTML;
+
+    if (mode === 'promessa') {
+      barHTML = `<div class="bar-early" style="width:${pE}%"></div><div class="bar-ontime" style="width:${pO}%"></div><div class="bar-delay" style="width:${pD}%"></div>`;
+      legendHTML = `
         <span class="leg"><span class="leg-dot" style="background:var(--early-bar)"></span>${o.early.toLocaleString('pt-BR')} (${pE}%) Early</span>
         <span class="leg"><span class="leg-dot" style="background:var(--ontime-bar)"></span>${o.ontime.toLocaleString('pt-BR')} (${pO}%) On Time</span>
-        <span class="leg"><span class="leg-dot" style="background:var(--delay-bar)"></span>${o.delay.toLocaleString('pt-BR')} (${pD}%) Delay</span>
-        ${o.huAlerts > 0 ? `<div class="alert-badge">⚠️ ${o.huAlerts} HU CHP c/ alerta</div>` : ''}
-      </div>
+        <span class="leg"><span class="leg-dot" style="background:var(--delay-bar)"></span>${o.delay.toLocaleString('pt-BR')} (${pD}%) Delay</span>`;
+    } else {
+      const subMap = mode === 'nodo' ? o.nodos : o.enderecos;
+      const entries = Object.entries(subMap).sort((a,b)=>b[1]-a[1]);
+      barHTML = entries.map(([k,v],i) => `<div style="width:${(v/o.total*100).toFixed(1)}%;background:${palette[i%palette.length]};height:100%"></div>`).join('');
+      legendHTML = entries.map(([k,v],i) => `<span class="leg"><span class="leg-dot" style="background:${palette[i%palette.length]}"></span>${k}: ${v.toLocaleString('pt-BR')} (${(v/o.total*100).toFixed(1)}%)</span>`).join('');
+    }
+
+    return `<div class="origem-card ${o.huAlerts>0?'has-alert':''}">
+      <div class="origem-header"><span class="origem-name">${o.orig}</span><span class="origem-total">${o.total.toLocaleString('pt-BR')} pcts</span></div>
+      <div class="origem-bar-row">${barHTML}</div>
+      <div class="origem-legend">${legendHTML}${o.huAlerts>0?`<div class="alert-badge">⚠️ ${o.huAlerts} HU CHP c/ alerta</div>`:''}</div>
     </div>`;
   }).join('');
 }
 
-function renderChart(data) {
-  const map = {};
-  data.forEach(r => {
-    const o = r['Facility_Origem']; const d = String(r['INFO DIT'] || '').trim().toUpperCase();
-    if (!o) return;
-    if (!map[o]) map[o] = { early: 0, ontime: 0, delay: 0 };
-    if (d === 'EARLY') map[o].early++;
-    else if (d === 'ON TIME') map[o].ontime++;
-    else if (d === 'DELAY') map[o].delay++;
-  });
+function renderChart(data, dimKey) {
+  const map = buildDimMap(data, dimKey);
   const labels = Object.keys(map).sort();
-  const totals = labels.map(l => map[l].early + map[l].ontime + map[l].delay);
+  const totals = labels.map(l => map[l].total);
   if (chartInstance) chartInstance.destroy();
   chartInstance = new Chart(document.getElementById('chart-origem'), {
     type: 'bar',
-    data: {
-      labels,
-      datasets: [
-        { label: 'Early %', data: labels.map((l,i) => totals[i]>0?(map[l].early/totals[i]*100).toFixed(1):0), backgroundColor: '#00A650', borderRadius: 3 },
-        { label: 'On Time %', data: labels.map((l,i) => totals[i]>0?(map[l].ontime/totals[i]*100).toFixed(1):0), backgroundColor: '#FFAD00', borderRadius: 3 },
-        { label: 'Delay %', data: labels.map((l,i) => totals[i]>0?(map[l].delay/totals[i]*100).toFixed(1):0), backgroundColor: '#F23D4F', borderRadius: 3 }
-      ]
-    },
-    options: {
-      responsive: true,
-      plugins: {
-        legend: { position: 'top', labels: { font: { size: 12 }, boxWidth: 12 } },
-        tooltip: { callbacks: { label: ctx => {
-          const n = Math.round(ctx.raw / 100 * (totals[ctx.dataIndex] || 0));
+    data: { labels, datasets: [
+      { label:'Early %', data: labels.map((l,i)=>totals[i]>0?(map[l].early/totals[i]*100).toFixed(1):0), backgroundColor:'#00A650', borderRadius:3 },
+      { label:'On Time %', data: labels.map((l,i)=>totals[i]>0?(map[l].ontime/totals[i]*100).toFixed(1):0), backgroundColor:'#FFAD00', borderRadius:3 },
+      { label:'Delay %', data: labels.map((l,i)=>totals[i]>0?(map[l].delay/totals[i]*100).toFixed(1):0), backgroundColor:'#F23D4F', borderRadius:3 }
+    ]},
+    options: { responsive:true,
+      plugins: { legend:{position:'top',labels:{font:{size:12},boxWidth:12}},
+        tooltip:{callbacks:{label: ctx => {
+          const n = Math.round(ctx.raw/100*(totals[ctx.dataIndex]||0));
           return ` ${ctx.dataset.label}: ${ctx.raw}% (${n.toLocaleString('pt-BR')} pcts)`;
-        }}}
-      },
-      scales: {
-        x: { stacked: true, grid: { display: false } },
-        y: { stacked: true, max: 100, ticks: { callback: v => v + '%' }, grid: { color: 'rgba(0,0,0,0.05)' } }
-      }
+        }}}},
+      scales: { x:{stacked:true,grid:{display:false}}, y:{stacked:true,max:100,ticks:{callback:v=>v+'%'},grid:{color:'rgba(0,0,0,0.05)'}} }
     }
   });
 }
 
 function renderTable(rows) {
-  if (!rows.length) {
-    document.getElementById('hu-tbody').innerHTML = '<tr><td colspan="9" style="text-align:center;padding:2rem;color:#999">Nenhuma HU encontrada com os filtros aplicados.</td></tr>';
-    return;
-  }
-  document.getElementById('hu-tbody').innerHTML = rows.map(r => {
-    const isChp = r.ciclo === 'CHP';
-    const statusPill = r.alert
-      ? `<span class="pill pill-delay">⚠ ALERTA</span>`
-      : r.delay > 0
-        ? `<span class="pill pill-ontime">DELAY</span>`
-        : `<span class="pill pill-early">OK</span>`;
-    return `<tr class="${r.alert ? 'row-alert' : ''}">
-      <td style="font-family:monospace; font-size:12px; font-weight:500" title="${r.hu}">${r.hu.length > 16 ? '…' + r.hu.slice(-12) : r.hu}</td>
-      <td><span class="pill-ciclo">${r.ciclo}</span></td>
-      <td>${r.orig}</td>
-      <td style="color:var(--text-muted)">${r.nodo}</td>
-      <td style="text-align:right; font-weight:600">${r.total.toLocaleString('pt-BR')}</td>
-      <td><div class="mini-bar-container"><div class="mini-bar-bg"><div class="mini-bar-fill bar-early" style="width:${r.pctEarly}%"></div></div><span class="pct-val">${r.early} <span style="opacity:.6">(${r.pctEarly.toFixed(1)}%)</span></span></div></td>
-      <td><div class="mini-bar-container"><div class="mini-bar-bg"><div class="mini-bar-fill bar-ontime" style="width:${r.pctOntime}%"></div></div><span class="pct-val ${r.alert?'pct-alert':''}">${r.ontime} <span style="opacity:.6">(${r.pctOntime.toFixed(1)}%)</span></span></div></td>
-      <td><div class="mini-bar-container"><div class="mini-bar-bg"><div class="mini-bar-fill bar-delay" style="width:${r.pctDelay}%"></div></div><span class="pct-val">${r.delay} <span style="opacity:.6">(${r.pctDelay.toFixed(1)}%)</span></span></div></td>
-      <td>${isChp ? statusPill : '<span style="color:#ccc;font-size:11px">—</span>'}</td>
-    </tr>`;
+  const card = document.getElementById('hu-table-card');
+  if (!rows.length) { card.innerHTML='<div style="text-align:center;padding:2rem;color:#999">Nenhuma HU encontrada com os filtros aplicados.</div>'; return; }
+
+  // Group by origem
+  const groups = {};
+  rows.forEach(r => {
+    if (!groups[r.orig]) groups[r.orig] = {orig:r.orig, rows:[], alerts:0, total:0, ontime:0};
+    groups[r.orig].rows.push(r);
+    groups[r.orig].total += r.total;
+    groups[r.orig].ontime += r.ontime;
+    if (r.alert) groups[r.orig].alerts++;
+  });
+
+  const thead = `<table><thead><tr>
+    <th>HU</th><th>Ciclo</th><th>Tipo Nodo</th><th style="text-align:right">Total</th>
+    <th>Early</th><th>On Time</th><th>Delay</th><th>Status</th>
+  </tr></thead>`;
+
+  card.innerHTML = Object.values(groups).sort((a,b)=>b.total-a.total).map((g,gi) => {
+    const pO = g.total>0?(g.ontime/g.total*100).toFixed(1):0;
+    const huRows = g.rows.map(r => {
+      const isChp = r.ciclo==='CHP';
+      const status = r.alert ? `<span class="pill pill-delay">⚠ ALERTA</span>`
+        : r.delay>0 ? `<span class="pill pill-ontime">DELAY</span>`
+        : isChp ? `<span class="pill pill-early">OK</span>`
+        : `<span style="color:#ccc;font-size:11px">—</span>`;
+      const mkBar = (val, pct, cls) => `<div class="mini-bar-container"><div class="mini-bar-bg"><div class="mini-bar-fill ${cls}" style="width:${pct}%"></div></div><span class="pct-val ${cls==='bar-ontime'&&r.alert?'pct-alert':''}">${val} <span style="opacity:.6">(${pct.toFixed(1)}%)</span></span></div>`;
+      return `<tr class="${r.alert?'row-alert':''}">
+        <td style="font-family:monospace;font-size:12px;font-weight:500" title="${r.hu}">${r.hu.length>16?'…'+r.hu.slice(-12):r.hu}</td>
+        <td><span class="pill-ciclo">${r.ciclo}</span></td>
+        <td style="color:var(--text-muted)">${r.nodo}</td>
+        <td style="text-align:right;font-weight:600">${r.total.toLocaleString('pt-BR')}</td>
+        <td>${mkBar(r.early,r.pctEarly,'bar-early')}</td>
+        <td>${mkBar(r.ontime,r.pctOntime,'bar-ontime')}</td>
+        <td>${mkBar(r.delay,r.pctDelay,'bar-delay')}</td>
+        <td>${status}</td>
+      </tr>`;
+    }).join('');
+
+    return `<div class="origem-group">
+      <div class="origem-group-header" onclick="toggleGroup(${gi})">
+        ${g.alerts>0?'<div class="og-alert-dot"></div>':''}
+        <span class="og-name">${g.orig}</span>
+        <div class="og-stats">
+          <span>${g.rows.length} HU${g.rows.length>1?'s':''}</span>
+          <span>${g.total.toLocaleString('pt-BR')} pcts</span>
+          <span>${pO}% ON TIME</span>
+          ${g.alerts>0?`<span style="color:var(--delay-text);font-weight:600">⚠ ${g.alerts} alerta${g.alerts>1?'s':''}</span>`:''}
+        </div>
+        <span class="og-arrow">▶</span>
+      </div>
+      <div class="origem-group-table" id="og-${gi}">${thead}<tbody>${huRows}</tbody></table></div>
+    </div>`;
   }).join('');
+}
+
+function toggleGroup(gi) {
+  const table = document.getElementById(`og-${gi}`);
+  const header = table.previousElementSibling;
+  table.classList.toggle('open');
+  header.classList.toggle('expanded');
 }
 
 function resetDash() { location.reload(); }
